@@ -1,0 +1,11 @@
+{
+  "name": "landing-page-downtime-detector",
+  "version": "0.1.0",
+  "description": "Web-based monitoring dashboard for Vercel landing pages.",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
