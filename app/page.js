@@ -32,11 +32,16 @@ export default function Home() {
     environments: []
   });
   const [selectedId, setSelectedId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const filteredPages = useMemo(() => {
     return pages.filter((page) => {
       if (filters.status === "down" && page.status !== "DOWN") return false;
-      if (filters.status === "dns" && !page.reason.toLowerCase().includes("dns")) return false;
+      if (filters.status === "dns" && (!page.reason || !page.reason.toLowerCase().includes("dns"))) return false;
       if (filters.client !== "all" && page.client !== filters.client) return false;
       if (filters.project !== "all" && page.project !== filters.project) return false;
       if (filters.environment !== "all" && page.environment !== filters.environment) return false;
@@ -52,35 +57,96 @@ export default function Home() {
   const selectedHistory = selectedId ? history.get(selectedId) ?? [] : [];
   const latestRecord = selectedHistory[0];
 
+  const loadPages = async (showRefreshing = false) => {
+    try {
+      if (showRefreshing) setRefreshing(true);
+      setError(null);
+      const response = await fetch("/api/pages", {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" }
+      });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      setPages(data.results || []);
+      setLastUpdate(new Date());
+      setLoading(false);
+      setRefreshing(false);
+    } catch (error) {
+      console.error("Error loading pages:", error);
+      setError(error.message);
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
+    let isMounted = true;
+    let intervalId = null;
+
     const loadFilters = async () => {
-      const response = await fetch("/api/filters");
-      const data = await response.json();
-      setFilterOptions(data);
+      try {
+        const response = await fetch("/api/filters", {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" }
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        if (isMounted) {
+          setFilterOptions(data);
+        }
+      } catch (error) {
+        console.error("Error loading filters:", error);
+        if (isMounted) {
+          setFilterOptions({ clients: [], projects: [], environments: [] });
+        }
+      }
     };
 
-    const loadPages = async () => {
-      const response = await fetch("/api/pages");
-      const data = await response.json();
-      setPages(data.results);
+    // Initial load
+    const initialize = async () => {
+      setLoading(true);
+      await Promise.all([loadFilters(), loadPages()]);
+      
+      // Set up polling every 30 seconds
+      intervalId = setInterval(() => {
+        loadPages(false);
+      }, 30000);
     };
 
-    loadFilters();
-    loadPages();
-    const interval = setInterval(loadPages, 30000);
-    return () => clearInterval(interval);
+    initialize();
+
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
   }, []);
 
   useEffect(() => {
     if (!selectedId) return;
     const loadHistory = async () => {
-      const response = await fetch(`/api/history/${selectedId}`);
-      const data = await response.json();
-      setHistory((prev) => {
-        const next = new Map(prev);
-        next.set(selectedId, data.results);
-        return next;
-      });
+      try {
+        setLoadingHistory(true);
+        const response = await fetch(`/api/history/${selectedId}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" }
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        setHistory((prev) => {
+          const next = new Map(prev);
+          next.set(selectedId, data.results || []);
+          return next;
+        });
+      } catch (error) {
+        console.error("Error loading history:", error);
+        setHistory((prev) => {
+          const next = new Map(prev);
+          next.set(selectedId, []);
+          return next;
+        });
+      } finally {
+        setLoadingHistory(false);
+      }
     };
     loadHistory();
   }, [selectedId]);
@@ -88,9 +154,46 @@ export default function Home() {
   return (
     <main className="container">
       <header>
-        <h1>Landing Page Downtime Detector</h1>
-        <p>Real-time monitoring for Vercel-hosted landing pages.</p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+          <div>
+            <h1>Landing Page Downtime Detector</h1>
+            <p>Real-time monitoring for landing pages.</p>
+            {lastUpdate && (
+              <p className="last-update" style={{ fontSize: "0.875rem", color: "#666", marginTop: "0.5rem" }}>
+                Last updated: {lastUpdate.toLocaleTimeString()}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => loadPages(true)}
+            disabled={refreshing}
+            style={{
+              padding: "0.5rem 1rem",
+              backgroundColor: "#0070f3",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: refreshing ? "not-allowed" : "pointer",
+              opacity: refreshing ? 0.6 : 1
+            }}
+          >
+            {refreshing ? "Refreshing..." : "🔄 Refresh"}
+          </button>
+        </div>
       </header>
+
+      {error && (
+        <div style={{ 
+          padding: "1rem", 
+          margin: "1rem 0", 
+          backgroundColor: "#fee", 
+          border: "1px solid #fcc", 
+          borderRadius: "4px",
+          color: "#c33"
+        }}>
+          <strong>Error:</strong> {error}. Please refresh the page.
+        </div>
+      )}
 
       <section className="filters">
         <label>
@@ -149,26 +252,31 @@ export default function Home() {
       </section>
 
       <section className="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Domain</th>
-              <th>Environment</th>
-              <th>Status</th>
-              <th>Failure Reason</th>
-              <th>Last Checked</th>
-              <th>Risk</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPages.length === 0 ? (
+        {loading ? (
+          <div style={{ padding: "2rem", textAlign: "center" }}>
+            <p>Loading landing pages...</p>
+          </div>
+        ) : (
+          <table>
+            <thead>
               <tr>
-                <td colSpan={6} className="empty">
-                  No matching landing pages.
-                </td>
+                <th>Domain</th>
+                <th>Environment</th>
+                <th>Status</th>
+                <th>Failure Reason</th>
+                <th>Last Checked</th>
+                <th>Risk</th>
               </tr>
-            ) : (
-              filteredPages.map((page) => (
+            </thead>
+            <tbody>
+              {filteredPages.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="empty">
+                    {pages.length === 0 ? "No landing pages configured." : "No matching landing pages."}
+                  </td>
+                </tr>
+              ) : (
+                filteredPages.map((page) => (
                 <tr key={page.id} onClick={() => setSelectedId(page.id)}>
                   <td>
                     <strong>{page.domain}</strong>
@@ -181,18 +289,21 @@ export default function Home() {
                   <td>{page.reason}</td>
                   <td>{formatTime(page.lastChecked)}</td>
                   <td>
-                    <span className={`risk ${page.risk.toLowerCase()}`}>{page.risk}</span>
+                    <span className={`risk ${page.risk ? page.risk.toLowerCase() : 'unknown'}`}>{page.risk || 'Unknown'}</span>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <section className="panel" id="detailsPanel">
         <h2>Latest Check Details</h2>
-        {!selectedPage ? (
+        {loadingHistory ? (
+          <div>Loading history...</div>
+        ) : !selectedPage ? (
           <div>Select a landing page to inspect the most recent check.</div>
         ) : !latestRecord ? (
           <div>No checks have completed yet.</div>
@@ -210,20 +321,20 @@ export default function Home() {
                 <strong>Reason:</strong> {selectedPage.reason}
               </p>
               <p>
-                <strong>Last Checked:</strong> {new Date(selectedPage.lastChecked).toLocaleString()}
+                <strong>Last Checked:</strong> {selectedPage.lastChecked ? new Date(selectedPage.lastChecked).toLocaleString() : "Never"}
               </p>
             </div>
             <div>
               <h4>DNS Check</h4>
               <p>
-                <strong>Type:</strong> {latestRecord.dns.type}
+                <strong>Type:</strong> {latestRecord.dns?.type || "N/A"}
               </p>
               <p>
-                <strong>Result:</strong> {latestRecord.dns.details}
+                <strong>Result:</strong> {latestRecord.dns?.details || "N/A"}
               </p>
               <h4>HTTP Check</h4>
               <p>
-                <strong>Result:</strong> {latestRecord.http.reason}
+                <strong>Result:</strong> {latestRecord.http?.reason || "N/A"}
               </p>
             </div>
           </div>
