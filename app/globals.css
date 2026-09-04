@@ -176,7 +176,7 @@ select:focus {
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
@@ -436,6 +436,42 @@ tbody tr:hover .copy-btn {
   background: rgba(245, 158, 11, 0.1);
   color: #fbbf24;
   border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* Toast Notification */
+.toast-notification {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: var(--text-primary);
+  padding: 14px 20px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5), 0 0 15px rgba(59, 130, 246, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  z-index: 9999;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: slide-in-bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fade-out 0.3s ease-out 2.7s forwards;
+}
+
+.toast-notification svg {
+  color: #10b981;
+}
+
+@keyframes slide-in-bottom {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
 }
 
 /* Responsive / Mobile Adjustments */

@@ -37,6 +37,7 @@ export default function Home() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const filteredPages = useMemo(() => {
     return pages.filter((page) => {
@@ -276,6 +277,8 @@ export default function Home() {
                         onClick={(e) => {
                           e.stopPropagation();
                           navigator.clipboard.writeText(page.domain);
+                          setToast("Link copied to clipboard");
+                          setTimeout(() => setToast(null), 3000);
                         }}
                         title="Copy to clipboard"
                       >
@@ -343,6 +346,13 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {toast && (
+        <div className="toast-notification">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          {toast}
+        </div>
+      )}
     </main>
   );
 }
