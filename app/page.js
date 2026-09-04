@@ -17,9 +17,9 @@ const formatTime = (isoString) => {
 };
 
 const createBadge = (status) => {
-  if (status === "LIVE") return <span className="badge live">🟢 Live</span>;
-  if (status === "DOWN") return <span className="badge down">🔴 Down</span>;
-  return <span className="badge unknown">🟡 Unknown</span>;
+  if (status === "LIVE") return <span className="badge live">Live</span>;
+  if (status === "DOWN") return <span className="badge down">Down</span>;
+  return <span className="badge unknown">Unknown</span>;
 };
 
 export default function Home() {
@@ -159,7 +159,8 @@ export default function Home() {
             <h1>Landing Page Downtime Detector</h1>
             <p>Real-time monitoring for landing pages.</p>
             {lastUpdate && (
-              <p className="last-update" style={{ fontSize: "0.875rem", color: "#666", marginTop: "0.5rem" }}>
+              <p className="last-update">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 Last updated: {lastUpdate.toLocaleTimeString()}
               </p>
             )}
@@ -167,93 +168,81 @@ export default function Home() {
           <button
             onClick={() => loadPages(true)}
             disabled={refreshing}
-            style={{
-              padding: "0.5rem 1rem",
-              backgroundColor: "#0070f3",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: refreshing ? "not-allowed" : "pointer",
-              opacity: refreshing ? 0.6 : 1
-            }}
+            className="btn-primary"
           >
-            {refreshing ? "Refreshing..." : "🔄 Refresh"}
+            <svg className={refreshing ? "icon-spin" : ""} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l5.67-1.35"/></svg>
+            {refreshing ? "Refreshing..." : "Refresh"}
           </button>
         </div>
       </header>
 
       {error && (
-        <div style={{ 
-          padding: "1rem", 
-          margin: "1rem 0", 
-          backgroundColor: "#fee", 
-          border: "1px solid #fcc", 
-          borderRadius: "4px",
-          color: "#c33"
-        }}>
+        <div className="error-alert">
           <strong>Error:</strong> {error}. Please refresh the page.
         </div>
       )}
 
-      <section className="filters">
-        <label>
-          Status
-          <select
-            value={filters.status}
-            onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
-          >
-            <option value="all">All</option>
-            <option value="down">Down only</option>
-            <option value="dns">DNS issues</option>
-          </select>
-        </label>
-        <label>
-          Client
-          <select
-            value={filters.client}
-            onChange={(event) => setFilters((prev) => ({ ...prev, client: event.target.value }))}
-          >
-            <option value="all">All clients</option>
-            {filterOptions.clients.map((client) => (
-              <option key={client} value={client}>
-                {client}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Project
-          <select
-            value={filters.project}
-            onChange={(event) => setFilters((prev) => ({ ...prev, project: event.target.value }))}
-          >
-            <option value="all">All projects</option>
-            {filterOptions.projects.map((project) => (
-              <option key={project} value={project}>
-                {project}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Environment
-          <select
-            value={filters.environment}
-            onChange={(event) => setFilters((prev) => ({ ...prev, environment: event.target.value }))}
-          >
-            <option value="all">All environments</option>
-            {filterOptions.environments.map((environment) => (
-              <option key={environment} value={environment}>
-                {environment}
-              </option>
-            ))}
-          </select>
-        </label>
+      <section className="filters-panel">
+        <div className="filters-grid">
+          <div className="filter-group">
+            <label>Status</label>
+            <select
+              value={filters.status}
+              onChange={(event) => setFilters((prev) => ({ ...prev, status: event.target.value }))}
+            >
+              <option value="all">All</option>
+              <option value="down">Down only</option>
+              <option value="dns">DNS issues</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Client</label>
+            <select
+              value={filters.client}
+              onChange={(event) => setFilters((prev) => ({ ...prev, client: event.target.value }))}
+            >
+              <option value="all">All clients</option>
+              {filterOptions.clients.map((client) => (
+                <option key={client} value={client}>
+                  {client}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Project</label>
+            <select
+              value={filters.project}
+              onChange={(event) => setFilters((prev) => ({ ...prev, project: event.target.value }))}
+            >
+              <option value="all">All projects</option>
+              {filterOptions.projects.map((project) => (
+                <option key={project} value={project}>
+                  {project}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Environment</label>
+            <select
+              value={filters.environment}
+              onChange={(event) => setFilters((prev) => ({ ...prev, environment: event.target.value }))}
+            >
+              <option value="all">All environments</option>
+              {filterOptions.environments.map((environment) => (
+                <option key={environment} value={environment}>
+                  {environment}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </section>
 
-      <section className="table-wrapper">
+      <section className="glass-table-wrapper">
         {loading ? (
-          <div style={{ padding: "2rem", textAlign: "center" }}>
+          <div className="state-message">
             <p>Loading landing pages...</p>
           </div>
         ) : (
@@ -271,7 +260,7 @@ export default function Home() {
             <tbody>
               {filteredPages.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty">
+                  <td colSpan={6} className="state-message">
                     {pages.length === 0 ? "No landing pages configured." : "No matching landing pages."}
                   </td>
                 </tr>
@@ -279,7 +268,7 @@ export default function Home() {
                 filteredPages.map((page) => (
                 <tr key={page.id} onClick={() => setSelectedId(page.id)}>
                   <td>
-                    <strong>{page.domain}</strong>
+                    <div className="domain-name">{page.domain}</div>
                     <div className="muted">
                       {page.client} • {page.project}
                     </div>
@@ -299,17 +288,17 @@ export default function Home() {
         )}
       </section>
 
-      <section className="panel" id="detailsPanel">
+      <section className="glass-panel" id="detailsPanel">
         <h2>Latest Check Details</h2>
         {loadingHistory ? (
-          <div>Loading history...</div>
+          <div className="state-message">Loading history...</div>
         ) : !selectedPage ? (
-          <div>Select a landing page to inspect the most recent check.</div>
+          <div className="state-message">Select a landing page to inspect the most recent check.</div>
         ) : !latestRecord ? (
-          <div>No checks have completed yet.</div>
+          <div className="state-message">No checks have completed yet.</div>
         ) : (
           <div className="detail-grid">
-            <div>
+            <div className="detail-card">
               <h3>{selectedPage.domain}</h3>
               <p>
                 <strong>Environment:</strong> {selectedPage.environment}
@@ -324,7 +313,7 @@ export default function Home() {
                 <strong>Last Checked:</strong> {selectedPage.lastChecked ? new Date(selectedPage.lastChecked).toLocaleString() : "Never"}
               </p>
             </div>
-            <div>
+            <div className="detail-card">
               <h4>DNS Check</h4>
               <p>
                 <strong>Type:</strong> {latestRecord.dns?.type || "N/A"}
