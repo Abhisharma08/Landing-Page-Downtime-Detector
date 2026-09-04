@@ -252,7 +252,6 @@ export default function Home() {
                 <th>Domain</th>
                 <th>Environment</th>
                 <th>Status</th>
-                <th>Latency</th>
                 <th>Uptime</th>
                 <th>Failure Reason</th>
                 <th>Last Checked</th>
@@ -262,7 +261,7 @@ export default function Home() {
             <tbody>
               {filteredPages.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="state-message">
+                  <td colSpan={7} className="state-message">
                     {pages.length === 0 ? "No landing pages configured." : "No matching landing pages."}
                   </td>
                 </tr>
@@ -289,7 +288,6 @@ export default function Home() {
                   </td>
                   <td>{page.environment}</td>
                   <td>{createBadge(page.status)}</td>
-                  <td>{page.latency ? `${page.latency}ms` : "–"}</td>
                   <td>{page.uptime !== null ? `${page.uptime}%` : "–"}</td>
                   <td>{page.reason}</td>
                   <td>{formatTime(page.lastChecked)}</td>
