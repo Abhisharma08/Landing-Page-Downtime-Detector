@@ -252,6 +252,8 @@ export default function Home() {
                 <th>Domain</th>
                 <th>Environment</th>
                 <th>Status</th>
+                <th>Latency</th>
+                <th>Uptime</th>
                 <th>Failure Reason</th>
                 <th>Last Checked</th>
                 <th>Risk</th>
@@ -260,7 +262,7 @@ export default function Home() {
             <tbody>
               {filteredPages.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="state-message">
+                  <td colSpan={8} className="state-message">
                     {pages.length === 0 ? "No landing pages configured." : "No matching landing pages."}
                   </td>
                 </tr>
@@ -268,13 +270,27 @@ export default function Home() {
                 filteredPages.map((page) => (
                 <tr key={page.id} onClick={() => setSelectedId(page.id)}>
                   <td>
-                    <div className="domain-name">{page.domain}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div className="domain-name">{page.domain}</div>
+                      <button
+                        className="copy-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(page.domain);
+                        }}
+                        title="Copy to clipboard"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                      </button>
+                    </div>
                     <div className="muted">
                       {page.client} • {page.project}
                     </div>
                   </td>
                   <td>{page.environment}</td>
                   <td>{createBadge(page.status)}</td>
+                  <td>{page.latency ? `${page.latency}ms` : "–"}</td>
+                  <td>{page.uptime !== null ? `${page.uptime}%` : "–"}</td>
                   <td>{page.reason}</td>
                   <td>{formatTime(page.lastChecked)}</td>
                   <td>
